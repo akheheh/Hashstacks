@@ -118,7 +118,7 @@ const ImageHashtagGenerator = () => {
           'Authorization': `Bearer ${apiKey.trim()}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini', // Using the more cost-effective vision model
+          model: 'gpt-4.1', // Using the more cost-effective vision model
           messages: [
             {
               role: 'user',
@@ -253,7 +253,7 @@ const ImageHashtagGenerator = () => {
           </div>
           <h1 className="text-xl font-bold tracking-tight">Hashstacks</h1>
         </div>
-        <p className="text-center text-white/80 text-sm mt-2">A better way to hashtag on IG, powered by AI!</p>
+        <p className="text-center text-white/80 text-sm mt-2">A better way to hashtag on IG, powered by AI!np</p>
       </div>
       
       <div className="w-full p-6">

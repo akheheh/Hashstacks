@@ -1,0 +1,17 @@
+{
+    "name": "AI Hashtag Generator",
+    "id": "ai-hashtag-generator",
+    "api": "1.0.0",
+    "main": "code.js",
+    "ui": "ui.html",
+    "capabilities": [],
+    "enableProposedApi": false,
+    "editorType": [
+      "figma"
+    ],
+    "networkAccess": {
+      "allowedDomains": [
+        "https://api.openai.com"
+      ]
+    }
+  }

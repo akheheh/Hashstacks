@@ -173,7 +173,7 @@
       <div id="hashtags" class="hashtags"></div>
       <div class="button-group">
         <button class="copy-button" id="copyBtn">Copy to Clipboard</button>
-        <button class="copy-button" id="createTextBtn" style="background: #6366f1;">Add to Figma</button>
+        <button class="copy-button" id="createTextBtn" style="background: #6c757d; opacity: 0.6;" disabled>Already Added!</button>
       </div>
     </div>
   </div>
@@ -266,7 +266,17 @@
         currentHashtags = msg.hashtags;
         hashtagsDiv.textContent = msg.hashtags;
         hashtagsContainer.style.display = 'block';
-        hideStatus();
+        
+        // Show success message if hashtags were auto-created
+        if (msg.message) {
+          showStatus(msg.message, 'loading');
+          setTimeout(() => {
+            hideStatus();
+          }, 3000);
+        } else {
+          hideStatus();
+        }
+        
         generateBtn.disabled = false;
       }
       

@@ -33,22 +33,57 @@ async function createHashtagElements(hashtags, originalNode) {
       return;
     }
 
-    // Create a subframe for hashtags
+    // Create the master hashtag component first
+    var masterComponent = figma.createComponent();
+    masterComponent.name = "Hashtag Component";
+    masterComponent.resize(80, 30); // Set initial size
+    
+    // Style the master component
+    masterComponent.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }]; // Light background
+    masterComponent.cornerRadius = 12;
+    
+    // Set up auto layout for the master component
+    masterComponent.layoutMode = "HORIZONTAL";
+    masterComponent.primaryAxisSizingMode = "AUTO";
+    masterComponent.counterAxisSizingMode = "AUTO";
+    masterComponent.paddingTop = 6;
+    masterComponent.paddingBottom = 6;
+    masterComponent.paddingLeft = 12;
+    masterComponent.paddingRight = 12;
+    
+    // Create text inside the master component
+    var masterText = figma.createText();
+    masterText.characters = "#hashtag";
+    masterText.fontSize = 11;
+    masterText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.4, b: 0.9 } }]; // Blue color
+    masterText.name = "Hashtag Text";
+    
+    masterComponent.appendChild(masterText);
+    
+    // Position the master component off-screen (so it doesn't interfere)
+    masterComponent.x = -1000;
+    masterComponent.y = -1000;
+    
+    // Add master component to the page
+    figma.currentPage.appendChild(masterComponent);
+
+    // Create a subframe for hashtag instances
     var hashtagFrame = figma.createFrame();
     hashtagFrame.name = "Generated Hashtags";
     hashtagFrame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.98 } }]; // Light gray background
     hashtagFrame.cornerRadius = 8;
-    hashtagFrame.paddingTop = 16;
-    hashtagFrame.paddingBottom = 16;
-    hashtagFrame.paddingLeft = 16;
-    hashtagFrame.paddingRight = 16;
-    hashtagFrame.itemSpacing = 8;
     
     // Set up auto layout for horizontal wrapping
     hashtagFrame.layoutMode = "HORIZONTAL";
     hashtagFrame.primaryAxisSizingMode = "FIXED"; // Fixed width
     hashtagFrame.counterAxisSizingMode = "AUTO"; // Auto height
     hashtagFrame.layoutWrap = "WRAP"; // Enable wrapping to next line
+    hashtagFrame.itemSpacing = 8; // Horizontal spacing between hashtags
+    hashtagFrame.counterAxisSpacing = 7; // Vertical spacing between lines
+    hashtagFrame.paddingTop = 16;
+    hashtagFrame.paddingBottom = 16;
+    hashtagFrame.paddingLeft = 16;
+    hashtagFrame.paddingRight = 16;
     
     var containerHeight = 80; // Base container height
     
@@ -75,19 +110,25 @@ async function createHashtagElements(hashtags, originalNode) {
     hashtagFrame.y = contentBottom + 50; // 50px below the bottom of existing content
     hashtagFrame.resize(originalNode.width - 40, containerHeight); // Full width minus 40px margin
     
-    // Create individual hashtag text elements
+    // Create hashtag instances from the master component
     var createdCount = 0;
     for (var i = 0; i < Math.min(hashtagLines.length, 20); i++) { // Limit to 20 hashtags
       var hashtag = hashtagLines[i].trim();
       if (hashtag) {
-        var textNode = figma.createText();
-        textNode.characters = hashtag;
-        textNode.fontSize = 11;
-        textNode.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.4, b: 0.9 } }]; // Blue color for hashtags
-        textNode.name = "Hashtag: " + hashtag;
+        // Create an instance of the master component
+        var hashtagInstance = masterComponent.createInstance();
+        hashtagInstance.name = "Hashtag: " + hashtag;
         
-        // Add text to the frame
-        hashtagFrame.appendChild(textNode);
+        // Update the text in the instance
+        var textNode = hashtagInstance.findOne(function(node) {
+          return node.type === "TEXT" && node.name === "Hashtag Text";
+        });
+        if (textNode) {
+          textNode.characters = hashtag;
+        }
+        
+        // Add instance to the frame
+        hashtagFrame.appendChild(hashtagInstance);
         createdCount++;
       }
     }
@@ -103,7 +144,7 @@ async function createHashtagElements(hashtags, originalNode) {
     figma.ui.postMessage({ 
       type: 'hashtags-generated', 
       hashtags: hashtags,
-      message: 'Created ' + createdCount + ' hashtag elements automatically!',
+      message: 'Created ' + createdCount + ' hashtag component instances! Edit the master component to style all hashtags.',
       selectedNode: {
         id: originalNode.id,
         width: originalNode.width,

@@ -2,15 +2,22 @@
 figma.showUI(__html__, { width: 400, height: 600 });
 
 // Function to create hashtag elements
-async function createHashtagElements(hashtags, originalNode) {
+async function createHashtagElements(hashtags, originalNode, categoryLabel) {
   try {
-    // Load the default font that Figma expects
+    // Load the default fonts that we'll need
+    var regularFont = { family: "Inter", style: "Regular" };
+    var mediumFont = { family: "Inter", style: "Medium" };
+    
     try {
-      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      await figma.loadFontAsync(regularFont);
+      await figma.loadFontAsync(mediumFont);
     } catch (fontError) {
       // If Inter fails, try Arial
       try {
-        await figma.loadFontAsync({ family: "Arial", style: "Regular" });
+        regularFont = { family: "Arial", style: "Regular" };
+        mediumFont = { family: "Arial", style: "Bold" }; // Use Bold instead of Medium
+        await figma.loadFontAsync(regularFont);
+        await figma.loadFontAsync(mediumFont);
       } catch (arialError) {
         figma.ui.postMessage({ 
           type: 'error', 
@@ -33,39 +40,54 @@ async function createHashtagElements(hashtags, originalNode) {
       return;
     }
 
-    // Create the master hashtag component first
-    var masterComponent = figma.createComponent();
-    masterComponent.name = "Hashtag Component";
-    masterComponent.resize(80, 30); // Set initial size
+    // Check if a Hashtag Component already exists
+    var existingComponents = figma.currentPage.findAll(function(node) {
+      return node.type === "COMPONENT" && node.name === "Hashtag Component";
+    });
     
-    // Style the master component
-    masterComponent.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }]; // Light background
-    masterComponent.cornerRadius = 12;
+    var masterComponent;
     
-    // Set up auto layout for the master component
-    masterComponent.layoutMode = "HORIZONTAL";
-    masterComponent.primaryAxisSizingMode = "AUTO";
-    masterComponent.counterAxisSizingMode = "AUTO";
-    masterComponent.paddingTop = 6;
-    masterComponent.paddingBottom = 6;
-    masterComponent.paddingLeft = 12;
-    masterComponent.paddingRight = 12;
-    
-    // Create text inside the master component
-    var masterText = figma.createText();
-    masterText.characters = "#hashtag";
-    masterText.fontSize = 11;
-    masterText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.4, b: 0.9 } }]; // Blue color
-    masterText.name = "Hashtag Text";
-    
-    masterComponent.appendChild(masterText);
-    
-    // Position the master component off-screen (so it doesn't interfere)
-    masterComponent.x = -1000;
-    masterComponent.y = -1000;
-    
-    // Add master component to the page
-    figma.currentPage.appendChild(masterComponent);
+    if (existingComponents.length > 0) {
+      // Use the existing component
+      masterComponent = existingComponents[0];
+      figma.ui.postMessage({ type: 'loading', message: 'Using existing Hashtag Component...' });
+    } else {
+      // Create a new master hashtag component
+      figma.ui.postMessage({ type: 'loading', message: 'Creating new Hashtag Component...' });
+      
+      masterComponent = figma.createComponent();
+      masterComponent.name = "Hashtag Component";
+      masterComponent.resize(80, 30); // Set initial size
+      
+      // Style the master component
+      masterComponent.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }]; // Light background
+      masterComponent.cornerRadius = 12;
+      
+      // Set up auto layout for the master component
+      masterComponent.layoutMode = "HORIZONTAL";
+      masterComponent.primaryAxisSizingMode = "AUTO";
+      masterComponent.counterAxisSizingMode = "AUTO";
+      masterComponent.paddingTop = 6;
+      masterComponent.paddingBottom = 6;
+      masterComponent.paddingLeft = 12;
+      masterComponent.paddingRight = 12;
+      
+      // Create text inside the master component
+      var masterText = figma.createText();
+      masterText.characters = "#hashtag";
+      masterText.fontSize = 11;
+      masterText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.4, b: 0.9 } }]; // Blue color
+      masterText.name = "Hashtag Text";
+      
+      masterComponent.appendChild(masterText);
+      
+      // Position the master component off-screen (so it doesn't interfere)
+      masterComponent.x = -1000;
+      masterComponent.y = -1000;
+      
+      // Add master component to the page
+      figma.currentPage.appendChild(masterComponent);
+    }
 
     // Create a subframe for hashtag instances
     var hashtagFrame = figma.createFrame();
@@ -73,17 +95,39 @@ async function createHashtagElements(hashtags, originalNode) {
     hashtagFrame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.98 } }]; // Light gray background
     hashtagFrame.cornerRadius = 8;
     
-    // Set up auto layout for horizontal wrapping
-    hashtagFrame.layoutMode = "HORIZONTAL";
+    // Set up auto layout for vertical stacking (label + hashtags)
+    hashtagFrame.layoutMode = "VERTICAL";
     hashtagFrame.primaryAxisSizingMode = "FIXED"; // Fixed width
     hashtagFrame.counterAxisSizingMode = "AUTO"; // Auto height
-    hashtagFrame.layoutWrap = "WRAP"; // Enable wrapping to next line
-    hashtagFrame.itemSpacing = 8; // Horizontal spacing between hashtags
-    hashtagFrame.counterAxisSpacing = 7; // Vertical spacing between lines
+    hashtagFrame.itemSpacing = 12; // Space between label and hashtags
     hashtagFrame.paddingTop = 16;
     hashtagFrame.paddingBottom = 16;
     hashtagFrame.paddingLeft = 16;
     hashtagFrame.paddingRight = 16;
+    
+    // Create category label
+    var categoryText = figma.createText();
+    categoryText.characters = categoryLabel || "Hashtags";
+    categoryText.fontSize = 14;
+    categoryText.fontName = mediumFont; // Use the loaded medium/bold font
+    categoryText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }]; // Dark gray
+    categoryText.name = "Category Label";
+    
+    // Add category label to frame
+    hashtagFrame.appendChild(categoryText);
+    
+    // Create a nested frame for the hashtags
+    var hashtagsContainer = figma.createFrame();
+    hashtagsContainer.name = "Hashtags Container";
+    hashtagsContainer.fills = []; // Transparent background
+    
+    // Set up auto layout for horizontal wrapping hashtags
+    hashtagsContainer.layoutMode = "HORIZONTAL";
+    hashtagsContainer.primaryAxisSizingMode = "FIXED"; // Fixed width
+    hashtagsContainer.counterAxisSizingMode = "AUTO"; // Auto height
+    hashtagsContainer.layoutWrap = "WRAP"; // Enable wrapping to next line
+    hashtagsContainer.itemSpacing = 8; // Horizontal spacing between hashtags
+    hashtagsContainer.counterAxisSpacing = 7; // Vertical spacing between lines
     
     var containerHeight = 300; // Base container height
     
@@ -110,6 +154,11 @@ async function createHashtagElements(hashtags, originalNode) {
     hashtagFrame.y = contentBottom + 50; // 50px below the bottom of existing content
     hashtagFrame.resize(originalNode.width - 40, containerHeight); // Full width minus 40px margin
     
+    // Position the hashtags container and size it
+    hashtagsContainer.x = 0;
+    hashtagsContainer.y = 0;
+    hashtagsContainer.resize(originalNode.width - 72, 300); // Width minus padding, auto height will expand
+    
     // Create hashtag instances from the master component
     var createdCount = 0;
     for (var i = 0; i < Math.min(hashtagLines.length, 20); i++) { // Limit to 20 hashtags
@@ -127,11 +176,14 @@ async function createHashtagElements(hashtags, originalNode) {
           textNode.characters = hashtag;
         }
         
-        // Add instance to the frame
-        hashtagFrame.appendChild(hashtagInstance);
+        // Add instance to the hashtags container
+        hashtagsContainer.appendChild(hashtagInstance);
         createdCount++;
       }
     }
+    
+    // Add the hashtags container to the main frame
+    hashtagFrame.appendChild(hashtagsContainer);
     
     // Add the hashtag frame to the original artboard as a child
     originalNode.appendChild(hashtagFrame);
@@ -141,10 +193,14 @@ async function createHashtagElements(hashtags, originalNode) {
     figma.viewport.scrollAndZoomIntoView([hashtagFrame]);
     
     // Send both hashtags and success message to UI
+    var componentMessage = existingComponents.length > 0 ? 
+      'Used existing Hashtag Component! Created ' + createdCount + ' hashtag instances.' :
+      'Created new Hashtag Component and ' + createdCount + ' hashtag instances!';
+    
     figma.ui.postMessage({ 
       type: 'hashtags-generated', 
       hashtags: hashtags,
-      message: 'Created ' + createdCount + ' hashtag component instances! Edit the master component to style all hashtags.',
+      message: componentMessage,
       selectedNode: {
         id: originalNode.id,
         width: originalNode.width,
@@ -240,8 +296,36 @@ figma.ui.onmessage = async function(msg) {
         const data = await response.json();
         const hashtags = data.choices[0].message.content.trim();
         
-        // Automatically create the hashtag elements
-        await createHashtagElements(hashtags, node);
+        // Generate a category label based on the hashtags
+        figma.ui.postMessage({ type: 'loading', message: 'Generating category label...' });
+        
+        const categoryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + msg.apiKey
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'user',
+                content: 'Based on these hashtags, generate a single, concise category label (1-3 words max) that best describes the overall theme. Just return the label, nothing else:\n\n' + hashtags
+              }
+            ],
+            max_tokens: 20
+          })
+        });
+
+        if (!categoryResponse.ok) {
+          throw new Error('Category generation failed: ' + categoryResponse.status);
+        }
+
+        const categoryData = await categoryResponse.json();
+        const categoryLabel = categoryData.choices[0].message.content.trim();
+        
+        // Automatically create the hashtag elements with category
+        await createHashtagElements(hashtags, node, categoryLabel);
         
       } catch (apiError) {
         figma.ui.postMessage({ 

@@ -85,7 +85,7 @@ async function createHashtagElements(hashtags, originalNode) {
     hashtagFrame.paddingLeft = 16;
     hashtagFrame.paddingRight = 16;
     
-    var containerHeight = 80; // Base container height
+    var containerHeight = 300; // Base container height
     
     // Find the bottom of the actual content in the artboard
     var contentBottom = 0;
